@@ -1,0 +1,124 @@
+---
+description: SonarQube Java rules and quality gates enforced during PR review. Covers bugs, vulnerabilities, code smells, and security hotspots based on SonarQube's Java analyzer rule set.
+alwaysApply: false
+globs: "**/*.java"
+---
+
+# SonarQube Java Rules
+
+## Bugs (Critical/Major)
+
+### Null-Pointer & NullPointerException (squid:S2259, S4449)
+- Always check for `null` before dereferencing an object that may be `null`.
+- Do not dereference the return value of `Map.get()` without a null check or `getOrDefault`.
+- Annotate non-null return values with `@NonNull`; annotate nullable returns with `@Nullable`.
+
+### Resource Leaks (squid:S2095)
+- Every `Closeable` opened in a method must be closed. Use `try-with-resources`.
+- Do not open streams or connections inside loops without ensuring they are closed per iteration.
+
+### Equals/HashCode Contract (squid:S1206, S2183)
+- If `equals` is overridden, `hashCode` must also be overridden in the same class.
+- Never compare objects with `==` when semantic equality is intended (`equals` must be used).
+
+### Infinite Loops / Unintended Logic (squid:S2189, S1116)
+- Every loop must have a reachable exit condition.
+- Empty statement bodies (lone `;`) are almost always a bug — flag them.
+
+### Operator Precedence (squid:S864)
+- Always add parentheses to clarify non-obvious operator precedence combinations, especially mixing bitwise and logical operators.
+
+### Wait/Notify (squid:S2273, S2274)
+- Calls to `wait()`, `notify()`, and `notifyAll()` must occur inside a `synchronized` block on the same object.
+
+## Vulnerabilities (Security — squid:S series / CWE)
+
+### SQL Injection (squid:S2077)
+- Never concatenate user-supplied strings into SQL queries. Use prepared statements or parameterized queries.
+
+### Command Injection (squid:S4721)
+- Never pass unsanitized user input to `Runtime.exec()` or `ProcessBuilder`.
+
+### XML Injection / XXE (squid:S2755)
+- Disable external entity processing on all XML parsers: set `XMLConstants.FEATURE_SECURE_PROCESSING`.
+
+### Hardcoded Credentials (squid:S2068)
+- No passwords, API keys, tokens, or secrets in source code. Use environment variables, Vault, or OSGi configuration instead.
+
+### Weak Cryptography (squid:S2245, S4432, S5542)
+- Do not use `Math.random()` for security purposes; use `SecureRandom`.
+- Do not use MD5 or SHA-1 for password hashing or digital signatures; use SHA-256 or better.
+- Do not use DES, 3DES, or RC4 ciphers; use AES-256.
+
+### Insecure Deserialization (squid:S5135)
+- Validate and whitelist all classes before deserializing from untrusted sources.
+
+## Code Smells (Major)
+
+### Cognitive Complexity (squid:S3776)
+- Keep cognitive complexity of a method below **15**. Refactor deeply nested, complex methods.
+
+### Cyclomatic Complexity (squid:S1541)
+- Methods with cyclomatic complexity above **10** must be refactored.
+
+### Too Many Parameters (squid:S107)
+- Methods must not have more than **7** parameters (prefer ≤4). Use parameter objects or builders.
+
+### Dead Code (squid:S1172, S1144, S1481)
+- Remove unused method parameters, private methods, and local variables.
+- Dead code is never acceptable in a PR — it should be deleted, not commented out.
+
+### Duplicate Code (squid:S1192, S4144)
+- String literals appearing more than 3 times must be extracted to a constant.
+- Identical code blocks must be extracted into shared methods.
+
+### Exception Handling (squid:S108, S1166, S2221, S1143)
+- Catch blocks must never be empty.
+- The original exception must always be logged or chained into a new exception.
+- Do not catch `Throwable`, `Error`, or `Exception` unless at a top-level boundary.
+- Do not `return` or `throw` inside a `finally` block (masks original exceptions).
+
+### Unnecessary Modifiers (squid:S2333)
+- Do not declare `public` or `abstract` on interface methods (redundant).
+- Do not declare `static` on interface constants (redundant).
+
+### Overriding Object.finalize (squid:S1111, S1114)
+- Do not override `finalize()`. Use `AutoCloseable` and `try-with-resources` instead.
+
+### String Comparison (squid:S4973)
+- Always use `.equals()` to compare strings, never `==`.
+
+### Collection isEmpty (squid:S1155)
+- Use `collection.isEmpty()` instead of `collection.size() == 0`.
+
+### Primitives over Boxed Types (squid:S5411)
+- Use primitive types (`int`, `boolean`, etc.) when boxing is not required. Avoid auto-unboxing NPE risks.
+
+### Deprecated APIs (squid:S1133)
+- Do not use deprecated APIs. Migrate to the recommended replacement.
+
+## Security Hotspots
+
+### Logging Sensitive Data (squid:S2068, S3330)
+- Do not log passwords, tokens, PII, or credit card numbers.
+- HTTP-only and Secure flags must be set on session cookies.
+
+### Reflection
+- Dynamic class loading or reflection bypassing access control must be reviewed for security implications.
+
+### File Path Manipulation (squid:S2083)
+- Validate that file paths provided by external input cannot escape the intended directory (path traversal).
+
+## Maintainability
+
+### Test Coverage Gate
+- All new business logic must be covered by unit tests. PRs adding untested code must be flagged.
+
+### Javadoc on Public APIs (squid:S1176)
+- All `public` and `protected` methods of non-test classes must have Javadoc comments.
+
+### Long Methods/Files
+- Flag methods exceeding 100 lines and files exceeding 1,000 lines for refactoring consideration.
+
+### Magic Numbers (squid:S109)
+- Numeric literals other than `-1`, `0`, `1`, and `2` that appear more than once must be named constants.

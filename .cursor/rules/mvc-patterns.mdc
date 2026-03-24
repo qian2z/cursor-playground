@@ -1,0 +1,113 @@
+---
+description: MVC (Model-View-Controller) architecture rules for Java applications. Covers layer boundaries, controller design, service layer patterns, and data access rules.
+alwaysApply: false
+globs: "**/*.java"
+---
+
+# MVC Architecture Rules
+
+## Layer Separation
+
+### Strict Layer Boundaries
+- **Controllers** handle only HTTP/request concerns: parsing input, invoking service methods, and formatting responses. Zero business logic.
+- **Services** contain all business logic. Services may call repositories and other services but never access the request/response directly.
+- **Repositories/DAOs** handle only data access. No business logic, no service calls.
+- **Models/Entities** are pure data holders. No service or repository calls inside model methods.
+- Enforce one-directional dependency flow: Controller → Service → Repository. No reverse dependencies.
+
+### Package Structure
+- Follow the layered package structure:
+  ```
+  com.example.
+    ├── controller/    (web layer)
+    ├── service/       (business logic, interfaces + impls)
+    ├── repository/    (data access)
+    ├── model/         (domain entities, value objects)
+    ├── dto/           (data transfer objects)
+    └── config/        (configuration classes)
+  ```
+- Do not mix layer concerns in a single package.
+
+## Controller Layer
+
+### Controller Responsibilities
+- Map HTTP verbs and paths to handler methods.
+- Extract and validate request parameters, path variables, and request bodies.
+- Delegate immediately to the service layer.
+- Convert service results to the appropriate response (DTO, status code, etc.).
+- Handle exceptions using a centralized exception handler (`@ControllerAdvice` / `@ExceptionHandler`).
+
+### What Controllers Must NOT Do
+- Must not contain `if/else` business logic.
+- Must not access repositories directly.
+- Must not perform calculations or data transformations beyond simple DTO mapping.
+- Must not hold any state (controllers must be stateless).
+
+### Input Validation
+- Use JSR-380 Bean Validation (`@Valid`, `@NotNull`, `@Size`, etc.) on request DTOs.
+- Define constraint violations centrally and return consistent error response structures.
+- Never trust user input; sanitize and validate before passing to the service layer.
+
+### Response Codes
+- `200 OK` for successful reads.
+- `201 Created` with a `Location` header for successful creates.
+- `204 No Content` for successful deletes.
+- `400 Bad Request` for invalid input.
+- `404 Not Found` when a resource does not exist.
+- `409 Conflict` for duplicate key / state conflict scenarios.
+- `500 Internal Server Error` only for unexpected failures, never for expected business errors.
+
+## Service Layer
+
+### Service Design
+- Define services as interfaces; provide one default implementation per interface.
+- Service interface names end with `Service`; implementations end with `ServiceImpl` or describe their nature (e.g., `CachingUserService`).
+- Services may be stateful (holding injected dependencies) but must not hold request-scoped state.
+- Document all public service methods with Javadoc explaining the contract, preconditions, and exceptions thrown.
+
+### Transaction Boundaries
+- Transactions must be declared at the service layer, not in repositories or controllers.
+- Use `@Transactional` on the service method (not the class unless every method requires a transaction).
+- Specify `readOnly = true` for query-only methods to optimize DB performance.
+- Prefer explicit transaction propagation rules; avoid relying on defaults for complex flows.
+
+### Business Rule Location
+- All business rules, validations, and domain calculations live in service methods or domain model objects.
+- Do not duplicate business logic across multiple controllers or endpoints.
+
+## Repository / DAO Layer
+
+### Data Access Rules
+- Repositories deal only with persistence — no business logic or transformation beyond mapping to/from entities.
+- Use named queries or query builder patterns (e.g., Spring Data JPA method names, Criteria API) over inline JPQL/SQL strings.
+- Parameterize all queries to prevent SQL injection.
+- Return domain types (`Optional<Entity>`) not raw data structures from repository methods.
+
+### Pagination & Large Data Sets
+- All list/search queries must support pagination. Never return unbounded lists from repository methods.
+- Use cursor-based pagination for large result sets to avoid offset-based performance degradation.
+
+## Model / Entity Layer
+
+### Entity Design
+- Entities have a clear identity (`@Id` field). Never compare entities by their mutable fields.
+- Prefer lazy loading for associations unless immediate loading is provably required for the use case.
+- Override `equals` and `hashCode` based solely on the identifier field for JPA entities.
+- Avoid bidirectional associations unless navigation from both sides is required; if used, keep the owning side consistent.
+
+### DTOs
+- Always use DTOs at the controller boundary; never expose JPA entities directly in API responses.
+- DTOs are immutable value objects where possible. Use records (Java 16+) or final-field POJOs.
+- Map entities to DTOs in the service layer or via a dedicated mapper class (e.g., MapStruct); never map in controllers or repositories.
+- Name DTOs clearly with context: `UserResponseDto`, `CreateOrderRequestDto`.
+
+## Configuration
+
+### Environment-Specific Config
+- All environment-specific values (DB URLs, ports, credentials) must come from external configuration (environment variables, config service, OSGi config admin), never hardcoded.
+- Provide sensible defaults in code only for non-sensitive, non-environment-specific settings.
+
+### Dependency Injection
+- Use constructor injection for mandatory dependencies.
+- Use setter/method injection only for optional dependencies.
+- Mark injected fields as `final` and remove field injection (`@Autowired` on fields) — it hides dependencies and makes testing difficult.
