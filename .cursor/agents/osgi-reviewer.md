@@ -35,6 +35,8 @@ For files without OSGi content, return: `[INFO] File has no OSGi component decla
 - Dynamic references use `volatile` fields or bind/unbind methods.
 - `ServiceReference` objects not held beyond a single method call.
 - Optional references null-checked before every use.
+- `policyOption = ReferencePolicyOption.GREEDY` used when the component should always bind the highest-ranked available service.
+- `target` filter set on `@Reference` when filtering by service properties is necessary.
 
 ### 3. Lifecycle Methods
 - `@Activate` is fast and non-blocking.
@@ -53,11 +55,15 @@ For files without OSGi content, return: `[INFO] File has no OSGi component decla
 - No cross-bundle `Class.forName()`.
 - No static `BundleContext` cached globally.
 
-### 6. Configuration Security
+### 6. Service Ranking & Properties
+- `service.ranking` is set explicitly when multiple implementations of the same interface exist; the intended ranking is documented in class-level Javadoc.
+- Service properties are declared in the `@Component` `property` attribute or via metatype config. Dynamic properties added in `activate()` must be documented with a rationale comment.
+
+### 7. Configuration Security
 - No passwords or tokens as default values in config DTO.
 - Sensitive properties documented as externally required.
 
-### 7. Logging
+### 8. Logging
 - SLF4J or OSGi `LogService` used — no `System.out` / `System.err`.
 
 ## Output Format

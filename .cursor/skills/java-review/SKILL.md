@@ -1,4 +1,4 @@
-﻿---
+---
 name: java-review
 description: Performs a comprehensive Java code review on provided source files or diffs. Applies Effective Java principles, SonarQube rules, OSGi service patterns, and MVC architecture checks. Use after fetching PR context with the bitbucket-pr skill.
 ---
@@ -127,6 +127,49 @@ Review every method for structural soundness and algorithmic complexity. Remembe
 - [ ] No XML parsers without secure processing enabled.
 - [ ] No `Math.random()` for security-sensitive operations.
 
+### 8. Java Code Standards
+Apply rules from `java-code-standards.mdc` to every changed file:
+
+**Naming**
+- [ ] Classes and interfaces use `UpperCamelCase`; methods and variables use `lowerCamelCase`; constants use `UPPER_SNAKE_CASE`.
+- [ ] Boolean variables/methods read as questions: `isActive`, `hasPermission`, `canExecute`.
+- [ ] No unexplained abbreviations (`mgr`, `hlpr`, etc.).
+
+**Class Structure**
+- [ ] Each class has a single, clear responsibility.
+- [ ] Class length is within 300–400 lines; extract cohesive logic if longer.
+- [ ] Field order: fields → constructors → public methods → private/protected helpers.
+
+**Methods**
+- [ ] Methods do one thing; no multi-clause method names like `fetchAndSaveUser`.
+- [ ] Method length is within ~30 lines; extract if longer.
+- [ ] Guard clauses (early return) used instead of deeply nested conditionals.
+- [ ] No `boolean` parameters that change method behavior — use overloading or strategy objects instead.
+- [ ] No more than 3–4 parameters; use parameter object or builder when more are needed.
+
+**Error Handling**
+- [ ] No empty or silently swallowed catch blocks.
+- [ ] Exceptions always logged with full stack trace (not just message).
+- [ ] Checked exceptions at architectural layer boundaries are wrapped in domain exceptions.
+- [ ] Exceptions not used for flow control.
+
+**Code Clarity**
+- [ ] `var` used only where the type is immediately obvious from the right-hand side.
+- [ ] No magic numbers or magic strings — define named constants.
+- [ ] No commented-out code.
+- [ ] Nested blocks limited to 2–3 levels; inner logic extracted to named methods.
+- [ ] Comments explain "why", not "what".
+
+### 9. Documentation & Javadoc
+Apply rules from `pr-review-process.mdc` Javadoc Requirements section:
+
+- [ ] Every newly added `class`, `interface`, `enum`, `record`, and `@interface` has a Javadoc comment — raise `[MAJOR]` if missing.
+- [ ] Every newly added method (including `private` and package-private) has Javadoc — raise `[MAJOR]` if missing.
+- [ ] Every newly added instance field and static field (any visibility) has a Javadoc comment — raise `[MINOR]` if missing.
+- [ ] Exceptions documented with `@throws` in Javadoc.
+- [ ] Parameter constraints documented in `@param` Javadoc.
+- [ ] Skip Javadoc check for: auto-generated files (`@Generated` or `generated-sources` in path), test classes/methods (`@Test`, `@ParameterizedTest`, etc.), and local variables inside method bodies.
+
 ---
 
 ## Output Format
@@ -151,7 +194,7 @@ Reference: <rule, Effective Java item, or Big-O analysis>
 
 Severity levels: `[BLOCKER]` `[CRITICAL]` `[MAJOR]` `[MINOR]` `[INFO]`
 
-After all findings, output the Review Summary table as defined in the `pr-review-process` rule.
+After all findings, output the Review Summary table as defined in the `pr-review-process` rule. The table must include all 12 categories: Architecture/Design, Business Logic, Security, Bugs & Correctness, OSGi Services, Effective Java, SonarQube, Java Code Standards, Test Quality, Performance, Logic & Algorithms, Documentation.
 
 ---
 
@@ -159,11 +202,12 @@ After all findings, output the Review Summary table as defined in the `pr-review
 
 1. Read each changed file from the PR diff provided.
 2. **Assume all inputs (collections, streams, query results, strings, files) are huge — millions of entries.** Evaluate every operation under that assumption.
-3. Work through the checklist above systematically, section by section.
+3. Work through the checklist above systematically, section by section, including sections 8 (Java Code Standards) and 9 (Documentation & Javadoc).
 4. For every logic or performance finding, include a Big-O analysis of the current code and the suggested improvement.
 5. Prefer Java 17–25+ syntax in all suggestions. Explicitly call out when a modern language feature (record, sealed class, pattern switch, virtual thread, etc.) can simplify or improve the code.
 6. **Every suggestion must include a `Behaviour Impact` statement** confirming that the proposed change does not alter observable behaviour or business logic. If there is any risk of behaviour change, label the finding `[CAUTION]` and describe the risk precisely.
 7. Log every finding with the correct severity and format.
 8. If a file is auto-generated (contains `@Generated` annotation or path includes `generated-sources`), skip detailed review and note it as `[INFO]`.
-9. After reviewing all files, compile and output the Review Summary.
-10. State a final recommendation: **APPROVE**, **REQUEST CHANGES**, or **COMMENT**.
+9. For test files (`@Test`, `@ParameterizedTest`), skip Javadoc checks but apply all other sections.
+10. After reviewing all files, compile and output the Review Summary.
+11. State a final recommendation: **APPROVE**, **REQUEST CHANGES**, or **COMMENT**.
