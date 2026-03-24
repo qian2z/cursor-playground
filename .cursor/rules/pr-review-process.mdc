@@ -103,6 +103,60 @@ Majors: <count>
 Minors: <count>
 ```
 
+## Inline PR Comment Posting — MANDATORY
+
+After completing the full review, **every finding must be posted as an inline comment directly on the relevant line in the Bitbucket PR**. Do not only output the review report to the chat; the findings must also be recorded directly on the PR diff so authors and reviewers see them in context.
+
+### Posting Rules
+
+1. **Post all `[BLOCKER]` and `[CRITICAL]` findings** as inline comments immediately — always.
+2. **Post all `[MAJOR]` findings** as inline comments — always.
+3. **Post `[MINOR]` and `[INFO]` findings** as inline comments only when asked, or when they add context that would be lost if not on the diff.
+4. **Anchor each comment to the exact file path and line number** of the affected code from the PR diff.
+5. Use `--severity BLOCKER` for `[BLOCKER]` findings and `--severity NORMAL` for all others.
+6. **Never combine multiple findings into a single comment.** One issue = one inline comment.
+
+### Posting Command
+
+Use the `bbpr.py comment` subcommand:
+
+```bash
+python3 .cursor/skills/bitbucket-pr/scripts/bbpr.py comment \
+  --project <PROJECT> \
+  --repo <REPO> \
+  --pr <PR_ID> \
+  --file "<file/path/Relative.java>" \
+  --line <LINE_NUMBER> \
+  --line-type ADDED \
+  --severity NORMAL \
+  --text "[SEVERITY] <Short title>
+
+Problem: <description>
+
+Current:
+  <snippet>
+
+Suggested:
+  <improved code>
+
+Behaviour Impact: <statement>
+
+Reference: <rule or item>"
+```
+
+> The script automatically appends the agent signature `--- *Posted by Cursor AI Review Agent*` to every comment body. Do not add the signature manually in `--text`.
+
+### Agent Signature
+
+Every comment posted by the agent **must** carry the following signature, which is automatically appended by the `bbpr.py comment` script:
+
+```
+---
+*Posted by Cursor AI Review Agent*
+```
+
+This signature is appended automatically — you do not need to include it in the `--text` argument. It identifies the comment as machine-generated so human reviewers can distinguish agent findings from human feedback.
+
 ## Tone & Collaboration
 - Use collaborative language: "Consider…", "This could be improved by…", not "This is wrong."
 - For `[BLOCKER]` and `[CRITICAL]`, be direct about the risk: "This introduces a potential SQL injection vulnerability."

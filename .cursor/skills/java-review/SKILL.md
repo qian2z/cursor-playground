@@ -211,3 +211,29 @@ After all findings, output the Review Summary table as defined in the `pr-review
 9. For test files (`@Test`, `@ParameterizedTest`), skip Javadoc checks but apply all other sections.
 10. After reviewing all files, compile and output the Review Summary.
 11. State a final recommendation: **APPROVE**, **REQUEST CHANGES**, or **COMMENT**.
+12. **Post every `[BLOCKER]`, `[CRITICAL]`, and `[MAJOR]` finding as an inline comment on the PR** using the `bbpr.py comment` command (see `bitbucket-pr` skill). Anchor each comment to the exact file path and line number from the diff. The agent signature is appended automatically — do not include it in the comment text. One comment per finding.
+
+### Inline Comment Example
+
+```bash
+python3 .cursor/skills/bitbucket-pr/scripts/bbpr.py comment \
+  --project <PROJECT> --repo <REPO> --pr <PR_ID> \
+  --file "src/main/java/com/example/OrderService.java" \
+  --line 87 \
+  --line-type ADDED \
+  --severity NORMAL \
+  --text "[CRITICAL] OrderService.java:87 — SQL query built by string concatenation
+
+Problem: Building SQL via string concatenation allows SQL injection if \`orderId\` originates from user input.
+
+Current:
+  String sql = \"SELECT * FROM orders WHERE id = '\" + orderId + \"'\";
+
+Suggested:
+  String sql = \"SELECT * FROM orders WHERE id = ?\";
+  // use PreparedStatement with setString(1, orderId)
+
+Behaviour Impact: This change preserves original behaviour because the query returns the same rows; only the binding mechanism changes.
+
+Reference: SonarQube S2077"
+```

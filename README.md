@@ -146,6 +146,7 @@ When you ask the agent to review a PR, it will:
    - `mvc-reviewer` — Check controllers/services/repositories
 4. **`review-verifier` subagent** — Validate review completeness
 5. Aggregate and output the final report with recommendation
+6. **Post inline comments** — All `[BLOCKER]`, `[CRITICAL]`, and `[MAJOR]` findings are automatically posted as inline comments anchored to the exact file and line in the Bitbucket PR
 
 ### Focused Reviews (Skills)
 
@@ -159,6 +160,20 @@ For targeted analysis, invoke skills directly:
 | `/effective-java` | Effective Java items deep dive |
 | `/osgi-review` | OSGi component compliance check |
 | `/mvc-review` | MVC layer architecture check |
+
+### Posting Inline Comments Manually
+
+You can also trigger inline comment posting at any time:
+
+```
+Post the review findings for PR #42 as inline comments on the PR
+```
+
+Or post a specific finding directly:
+
+```
+Post the BLOCKER findings from the last review as inline comments on PR #42 in MYPROJ/my-java-service
+```
 
 ### Explicit Subagent Invocation
 
@@ -286,20 +301,72 @@ Include YAML frontmatter with `name`, `description`, and optionally `model` and 
 
 ---
 
+## Inline Comment Posting & Agent Signature
+
+Every finding posted by the agent as an inline Bitbucket PR comment carries a machine-generated signature:
+
+```
+---
+*Posted by Cursor AI Review Agent*
+```
+
+This is appended **automatically** by the `bbpr.py comment` script — you do not need to add it manually. It lets human reviewers instantly distinguish agent-generated feedback from human review comments.
+
+### What Gets Posted Automatically
+
+| Severity | Posted by default? |
+|---|---|
+| `[BLOCKER]` | Always |
+| `[CRITICAL]` | Always |
+| `[MAJOR]` | Always |
+| `[MINOR]` | Only when explicitly requested |
+| `[INFO]` | Only when explicitly requested |
+
+### bbpr.py `comment` Command
+
+```bash
+python3 .cursor/skills/bitbucket-pr/scripts/bbpr.py comment \
+  --project MYPROJ \
+  --repo my-java-service \
+  --pr 42 \
+  --file "src/main/java/com/example/OrderService.java" \
+  --line 87 \
+  --line-type ADDED \
+  --severity NORMAL \
+  --text "[CRITICAL] OrderService.java:87 — SQL injection risk via string concatenation
+
+Problem: ...
+Suggested: ...
+Behaviour Impact: ...
+Reference: SonarQube S2077"
+```
+
+**Options:**
+
+| Flag | Description | Default |
+|---|---|---|
+| `--file` | Relative path of the file to anchor the comment to | (general comment if omitted) |
+| `--line` | Line number in the diff to anchor the comment to | (general comment if omitted) |
+| `--line-type` | `ADDED`, `REMOVED`, or `CONTEXT` | `ADDED` |
+| `--file-type` | `TO` (new file) or `FROM` (old file) | `TO` |
+| `--severity` | `NORMAL` or `BLOCKER` | `NORMAL` |
+
+---
+
 ## Bitbucket API Reference
 
 ### Bitbucket Server / Data Center (REST API 1.0)
 ```
-GET /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}
-GET /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}/diff
-GET /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}/changes
+GET  /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}
+GET  /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}/diff
+GET  /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}/changes
 POST /rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}/comments
 ```
 
 ### Bitbucket Cloud (REST API 2.0)
 ```
-GET /2.0/repositories/{workspace}/{repoSlug}/pullrequests/{prId}
-GET /2.0/repositories/{workspace}/{repoSlug}/pullrequests/{prId}/diff
+GET  /2.0/repositories/{workspace}/{repoSlug}/pullrequests/{prId}
+GET  /2.0/repositories/{workspace}/{repoSlug}/pullrequests/{prId}/diff
 POST /2.0/repositories/{workspace}/{repoSlug}/pullrequests/{prId}/comments
 ```
 
@@ -323,5 +390,11 @@ A: The `java-code-reviewer` subagent automatically launches parallel subagents f
 **Q: Can I use this without Bitbucket (e.g., with GitHub)?**
 A: The `java-review`, `sonarqube-java`, `effective-java`, `osgi-review`, and `mvc-review` skills work on any Java code. Only `bitbucket-pr` is Bitbucket-specific. You can adapt it to GitHub by changing the API endpoints.
 
-**Q: How do I post review comments back to Bitbucket automatically?**
-A: Ask the agent "post the BLOCKER and CRITICAL findings back to the PR". The `bitbucket-pr` skill includes instructions for the POST `/comments` endpoint.
+**Q: Does the agent post comments back to Bitbucket automatically?**
+A: Yes. After completing the review, the agent automatically posts all `[BLOCKER]`, `[CRITICAL]`, and `[MAJOR]` findings as inline comments anchored to the exact file and line in the PR. Each comment is signed with `--- *Posted by Cursor AI Review Agent*` so human reviewers can distinguish agent feedback from human comments. `[MINOR]` and `[INFO]` findings are only posted when you explicitly request it.
+
+**Q: How are agent-posted comments identified?**
+A: Every comment posted by the agent ends with the signature `--- *Posted by Cursor AI Review Agent*`. This is appended automatically by the `bbpr.py comment` script and cannot be missed or accidentally omitted.
+
+**Q: Can I post comments for only specific severities?**
+A: Yes. Ask the agent: "Post only the BLOCKER findings as inline comments on PR #42" or "Post all findings including MINOR on PR #42."
