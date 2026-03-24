@@ -117,6 +117,7 @@ All commands accept `--project` and `--repo` (both auto-detected from the git re
 | `get` | Fetch PR metadata as JSON | `--pr <id>` |
 | `diff` | Print unified diff of the PR | `--pr <id>`, `--context-lines <n>` (default 10) |
 | `comments` | List all comments/activities | `--pr <id>`, `--unresolved`, `--raw` |
+| `comment` | Post an inline comment anchored to a file and line | `--pr <id>`, `--file <path>`, `--line <n>`, `--text <text>`, `--line-type`, `--file-type`, `--severity` |
 | `reply` | Post a reply to an existing comment thread | `--pr <id>`, `--comment-id <id>`, `--text <text>` |
 | `create` | Open a new pull request | `--title <t>`, `--from <branch>`, `--to <branch>` (default `main`), `--description`, `--description-file`, `--reviewer`, `--no-default-reviewers` |
 | `list` | List PRs in a repo | `--state OPEN\|MERGED\|DECLINED` (default `OPEN`) |
@@ -146,27 +147,58 @@ python3 .cursor/skills/bitbucket-pr/scripts/bbpr.py create \
   --description-file pr_description.md
 ```
 
-## Posting Review Comments (Optional)
+## Posting Inline Review Comments — MANDATORY
 
-To post inline comments back to Bitbucket after the review, use the `reply` command for threaded responses, or call the REST API directly:
+After completing code review, **every finding ([BLOCKER], [CRITICAL], [MAJOR]) must be posted as an inline comment directly on the affected line** in the Bitbucket PR using the `comment` subcommand. This ensures authors and reviewers see findings in the exact context of the code they refer to.
+
+### Agent Signature
+
+The `bbpr.py comment` script automatically appends the following signature to every comment it posts:
 
 ```
-POST $BITBUCKET_BASE_URL/rest/api/1.0/projects/{projectKey}/repos/{repoSlug}/pull-requests/{prId}/comments
-Authorization: Bearer {BITBUCKET_TOKEN}
-Content-Type: application/json
-
-{
-  "text": "<comment text>",
-  "anchor": {
-    "line": <line number>,
-    "lineType": "ADDED",
-    "fileType": "TO",
-    "path": "<file path>"
-  }
-}
+---
+*Posted by Cursor AI Review Agent*
 ```
 
-Only post comments for `[BLOCKER]` and `[CRITICAL]` findings by default. Ask the user if they want `[MAJOR]` findings posted as well.
+You do **not** need to include this in the `--text` argument. It is added automatically to identify comments as machine-generated.
+
+### Inline Comment Command
+
+```bash
+python3 .cursor/skills/bitbucket-pr/scripts/bbpr.py comment \
+  --project <PROJECT> \
+  --repo <REPO> \
+  --pr <PR_ID> \
+  --file "src/main/java/com/example/MyService.java" \
+  --line 42 \
+  --line-type ADDED \
+  --severity NORMAL \
+  --text "[MAJOR] MyService.java:42 — Missing null check before use
+
+Problem: The result of getUserById() may be null; calling .getEmail() on it without a null check will throw NullPointerException at runtime.
+
+Current:
+  String email = getUserById(id).getEmail();
+
+Suggested:
+  User user = Objects.requireNonNull(getUserById(id), \"User must not be null for id: \" + id);
+  String email = user.getEmail();
+
+Behaviour Impact: This change preserves the original behaviour because the method was intended to work only when the user exists; the explicit check makes the assumption visible and fails fast with a meaningful message.
+
+Reference: SonarQube S2259, Effective Java Item 49"
+```
+
+### Inline Comment Posting Rules
+
+1. **Post all `[BLOCKER]` and `[CRITICAL]` findings** — always, no exceptions.
+2. **Post all `[MAJOR]` findings** — always.
+3. **Post `[MINOR]` and `[INFO]` findings** only when asked by the user.
+4. **Anchor each comment to the exact file and line** from the diff — never post a general (file-level only) comment for a finding that has a specific line.
+5. Use `--severity BLOCKER` for `[BLOCKER]` findings; use `--severity NORMAL` for everything else.
+6. **One finding per comment.** Never combine multiple issues into a single comment.
+7. For `--line-type`: use `ADDED` for newly added lines, `REMOVED` for deleted lines, `CONTEXT` for unchanged context lines.
+8. For `--file-type`: use `TO` (destination file, default) for findings on the new version; use `FROM` only when commenting on a deleted line in the old version.
 
 ## Error Handling
 

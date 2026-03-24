@@ -553,6 +553,61 @@ def cmd_reply(args):
         cursor_utils.die(f"Failed to post reply\n{json.dumps(response, indent=2)}")
 
 
+AGENT_SIGNATURE = "\n\n---\n*Posted by Cursor AI Review Agent*"
+
+
+def cmd_comment(args):
+    """Post an inline comment anchored to a specific file and line in the PR."""
+    project = args.project or detected_project
+    repo = args.repo or detected_repo
+    pr_id = args.pr
+    text = args.text
+    file_path = args.file
+    line = args.line
+    line_type = (args.line_type or "ADDED").upper()
+    file_type = (args.file_type or "TO").upper()
+    severity = (args.severity or "NORMAL").upper()
+
+    if not pr_id:
+        cursor_utils.die("--pr is required")
+    if not project:
+        cursor_utils.die("--project required")
+    if not repo:
+        cursor_utils.die("--repo required")
+    if not text:
+        cursor_utils.die("--text is required")
+
+    full_text = text + AGENT_SIGNATURE
+
+    payload = {"text": full_text, "severity": severity}
+
+    if file_path and line:
+        payload["anchor"] = {
+            "line": int(line),
+            "lineType": line_type,
+            "fileType": file_type,
+            "path": file_path,
+        }
+
+    response = api_call(
+        "POST",
+        f"/projects/{project}/repos/{repo}/pull-requests/{pr_id}/comments",
+        data=payload,
+    )
+    comment_id = response.get("id")
+    if comment_id:
+        print("Comment posted successfully!")
+        print(f"  Comment ID: #{comment_id}")
+        if file_path and line:
+            print(f"  Location:   {file_path}:{line} ({line_type})")
+        else:
+            print("  Type:       General comment")
+        print(f"  Severity:   {severity}")
+        print(f"  Text:       {text[:120]}{'...' if len(text) > 120 else ''}")
+    else:
+        cursor_utils.die(f"Failed to post comment\n{json.dumps(response, indent=2)}")
+
+
 def cmd_diff(args):
     project = args.project or detected_project
     repo = args.repo or detected_repo
@@ -675,6 +730,36 @@ def main():
     diff_p.add_argument("--pr", required=True)
     diff_p.add_argument("--context-lines", type=int, default=10)
     diff_p.set_defaults(func=cmd_diff)
+
+    comment_p = subparsers.add_parser(
+        "comment",
+        help="Post an inline comment anchored to a specific file and line in the PR.",
+    )
+    comment_p.add_argument("--project")
+    comment_p.add_argument("--repo")
+    comment_p.add_argument("--pr", required=True)
+    comment_p.add_argument("--text", required=True, help="Comment body text")
+    comment_p.add_argument("--file", help="File path to anchor the comment to")
+    comment_p.add_argument("--line", type=int, help="Line number to anchor the comment to")
+    comment_p.add_argument(
+        "--line-type",
+        default="ADDED",
+        choices=["ADDED", "REMOVED", "CONTEXT"],
+        help="Whether the line is ADDED, REMOVED, or CONTEXT (default: ADDED)",
+    )
+    comment_p.add_argument(
+        "--file-type",
+        default="TO",
+        choices=["TO", "FROM"],
+        help="Whether to anchor to the destination (TO) or source (FROM) file (default: TO)",
+    )
+    comment_p.add_argument(
+        "--severity",
+        default="NORMAL",
+        choices=["NORMAL", "BLOCKER"],
+        help="Bitbucket comment severity: NORMAL or BLOCKER (default: NORMAL)",
+    )
+    comment_p.set_defaults(func=cmd_comment)
 
     args = parser.parse_args()
     args.func(args)
