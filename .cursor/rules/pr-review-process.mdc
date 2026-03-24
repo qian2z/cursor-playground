@@ -16,7 +16,7 @@ When reviewing a PR, always cover these dimensions in order:
 6. **Test Quality** — Is the logic tested? Are edge cases and failure paths covered?
 7. **Performance & Scalability** — Are there N+1 queries, unbounded loops, blocking calls?
 8. **Security** — Are inputs validated, secrets absent, and sensitive data protected?
-9. **Documentation** — Do public APIs have Javadoc? Is the PR description adequate?
+9. **Documentation** — Do **all newly added classes, methods, and variables** have Javadoc, regardless of visibility (`public`, `protected`, package-private, or `private`)? Is the PR description adequate?
 
 ## Severity Labels
 
@@ -29,6 +29,23 @@ Use these consistent severity labels on every finding:
 | Major | `[MAJOR]` | Significant code smell, naming violation, or Effective Java violation. Fix strongly recommended. |
 | Minor | `[MINOR]` | Style inconsistency, minor naming issue, or optional improvement. Fix at author's discretion. |
 | Info | `[INFO]` | Informational observation, learning note, or positive feedback. No action required. |
+
+## Javadoc Requirements
+
+Javadoc is **mandatory for every newly added element** in the PR, regardless of visibility:
+
+- **Classes and interfaces** — all newly added `class`, `interface`, `enum`, `record`, and `@interface` declarations.
+- **Methods** — all newly added methods, including `private`, package-private, `protected`, and `public`.
+- **Fields / variables** — all newly added instance fields and static fields (any visibility).
+
+Exceptions (no Javadoc required):
+- Auto-generated files (`@Generated` annotation or `generated-sources` in path).
+- Test classes and test methods (`@Test`, `@ParameterizedTest`, etc.) — descriptive method names are sufficient.
+- Local variables inside method bodies.
+
+Findings for missing Javadoc must be raised as `[MAJOR]` for classes and methods, and `[MINOR]` for fields.
+
+---
 
 ## Review Comment Format
 
@@ -44,6 +61,8 @@ Current code:
 
 Suggested fix:
   <corrected snippet or approach>
+
+Behaviour Impact: <explicit statement that the suggested change preserves or does not preserve original behaviour, and why. REQUIRED — a finding without this is incomplete.>
 
 Reference: <Rule/item reference — e.g., "Effective Java Item 54", "SonarQube squid:S2095", "OSGi DS @Reference cardinality">
 ```
@@ -74,6 +93,7 @@ End every review with a summary block:
 | Test Quality          | ✅/⚠️/❌ | <count>  |
 | Performance           | ✅/⚠️/❌ | <count>  |
 | Security              | ✅/⚠️/❌ | <count>  |
+| Documentation         | ✅/⚠️/❌ | <count>  |
 
 **Overall: APPROVE / REQUEST CHANGES / COMMENT**
 
