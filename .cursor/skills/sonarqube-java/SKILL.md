@@ -18,9 +18,9 @@ This skill performs a targeted static analysis of Java code using SonarQube's Ja
 ### BUGS (Critical/Major — must fix)
 
 Scan for:
-- **Null dereferences** (squid:S2259): Dereference without null guard, `Map.get()` without `getOrDefault` or null check.
+- **Null dereferences** (squid:S2259): Dereference without null guard, `Map.get()` without `getOrDefault` or null check. Annotate non-null returns with `@NonNull`; annotate nullable returns with `@Nullable` where intent is non-obvious.
 - **Resource leaks** (squid:S2095): Any `Closeable` not in a `try-with-resources` or without explicit close.
-- **Equals/hashCode** (squid:S1206): `equals` overridden without `hashCode`, or vice versa.
+- **Equals/hashCode** (squid:S1206, S2183): `equals` overridden without `hashCode`, or vice versa. Never compare objects with `==` when semantic equality is intended.
 - **Wait/notify** (squid:S2273): `wait()`/`notify()` called outside `synchronized` block.
 - **Infinite loops** (squid:S2189): Loops with no reachable exit.
 - **Empty loop bodies** (squid:S1116): Lone `;` on a loop line.
@@ -64,6 +64,12 @@ Flag for human review:
 - HTTP cookie creation — confirm `HttpOnly` and `Secure` flags.
 - Random number generation — confirm `SecureRandom` for security use.
 
+### MAINTAINABILITY
+
+- **Javadoc on public/protected APIs** (squid:S1176): All `public` and `protected` methods of non-test classes must have Javadoc comments.
+- **Long methods** (squid:S138): Flag methods exceeding 100 lines for refactoring consideration.
+- **Long files**: Flag files exceeding 1,000 lines for refactoring consideration.
+
 ## Output Format
 
 Group findings by file, then by category:
@@ -83,6 +89,10 @@ Group findings by file, then by category:
 
 #### Security Hotspots
 - [INFO] Line <N>: Random number generated — confirm SecureRandom is used for security-sensitive context.
+
+#### Maintainability
+- [MAJOR] Line <N> (squid:S1176): Missing Javadoc on public method 'processOrder'.
+- [MINOR] Line <N>: Method 'buildReport' is 120 lines — consider extracting into smaller methods.
 ```
 
 End with a summary count per category and a predicted SonarQube quality gate result (PASS / FAIL).

@@ -47,13 +47,15 @@ Conduct a comprehensive, multi-dimensional Java code review on the provided PR d
    a. Architecture & layer boundary violations (highest priority — structural issues cascade)
    b. Security vulnerabilities (BLOCKERS — must flag all of them)
    c. Bugs and correctness issues
-   d. OSGi component compliance (if any `@Component` classes in diff)
-   e. **Function logic structure & algorithmic efficiency** — for every changed function: review the full logic, compute Big-O time and space complexity assuming millions of inputs, and flag any restructuring opportunity that would reduce complexity or eliminate bottlenecks
-   f. Effective Java compliance
-   g. SonarQube code smells
-   h. Test quality
-   i. Performance (N+1 queries, unbounded loads, GC pressure, missing pagination)
-   j. Documentation
+   d. Business logic correctness — does the code implement the stated requirements accurately?
+   e. OSGi component compliance (if any `@Component` classes in diff)
+   f. **Function logic structure & algorithmic efficiency** — for every changed function: review the full logic, compute Big-O time and space complexity assuming millions of inputs, and flag any restructuring opportunity that would reduce complexity or eliminate bottlenecks
+   g. Effective Java compliance
+   h. SonarQube code smells
+   i. Java code standards — naming conventions, class/method length limits (30-line methods, 300-400 line classes), guard clauses, boolean parameter ban, architectural exception wrapping, `var` usage, no commented-out code
+   j. Test quality
+   k. Performance (N+1 queries, unbounded loads, GC pressure, missing pagination)
+   l. **Documentation & Javadoc** — every newly added class, interface, enum, record, `@interface`, method (including `private` and package-private), and field must have Javadoc. Raise `[MAJOR]` for missing Javadoc on classes and methods; `[MINOR]` for missing Javadoc on fields. Exceptions: auto-generated files, test classes/methods, local variables.
 
 4. **For large PRs (>10 files)**: Launch parallel specialist subagents:
    - Send Java/OSGi files to the `osgi-reviewer` subagent
@@ -106,14 +108,17 @@ Always end with:
 | Category              | Status  | Findings |
 |-----------------------|---------|----------|
 | Architecture/Design   | ✅/⚠️/❌ | <count>  |
+| Business Logic        | ✅/⚠️/❌ | <count>  |
 | Security              | ✅/⚠️/❌ | <count>  |
 | Bugs & Correctness    | ✅/⚠️/❌ | <count>  |
 | OSGi Services         | ✅/⚠️/❌ | <count>  |
 | Effective Java        | ✅/⚠️/❌ | <count>  |
 | SonarQube             | ✅/⚠️/❌ | <count>  |
+| Java Code Standards   | ✅/⚠️/❌ | <count>  |
 | Test Quality          | ✅/⚠️/❌ | <count>  |
 | Performance           | ✅/⚠️/❌ | <count>  |
 | Logic & Algorithms    | ✅/⚠️/❌ | <count>  |
+| Documentation         | ✅/⚠️/❌ | <count>  |
 
 Blockers: <n> | Criticals: <n> | Majors: <n> | Minors: <n>
 

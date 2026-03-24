@@ -145,6 +145,7 @@ For each violation found:
 File: <FileName>.java, Line: <N>
 Issue: <what the code does wrong and the impact>
 Fix: <concrete correction with code snippet>
+Behaviour Impact: <explicit statement that the suggested change preserves or does not preserve original behaviour, and why. REQUIRED — a finding without this is incomplete.>
 ```
 
 Group findings by Effective Java chapter. End with a count of violations per chapter and an overall quality rating:

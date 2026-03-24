@@ -47,6 +47,7 @@ This skill performs a focused review of OSGi Declarative Services (DS) component
 - [ ] Dynamic references use either:
   - A `volatile` field, or
   - Explicit `bind`/`unbind` annotated methods.
+- [ ] `policyOption = ReferencePolicyOption.GREEDY` is set when the component should always bind the highest-ranked available service.
 - [ ] `ServiceReference` objects are never stored beyond the scope of a single method call.
 - [ ] For optional references, null is checked before every use.
 - [ ] `target` filter is set on `@Reference` when filtering by service properties is necessary.
@@ -58,6 +59,11 @@ This skill performs a focused review of OSGi Declarative Services (DS) component
 - [ ] No `Require-Bundle` in manifests — prefer `Import-Package`.
 - [ ] No `Class.forName()` used to load classes from another bundle.
 - [ ] No static `BundleContext` references cached globally.
+
+### Service Ranking & Properties
+
+- [ ] `service.ranking` is set explicitly when multiple implementations of the same interface exist; the intended ranking is documented in class-level Javadoc.
+- [ ] Service properties are declared in the `@Component` `property` attribute or via metatype config; dynamic properties added inside `activate()` are accompanied by a rationale comment.
 
 ### Lifecycle & Thread Safety
 
