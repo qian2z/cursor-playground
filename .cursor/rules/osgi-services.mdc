@@ -1,0 +1,72 @@
+---
+description: OSGi service development rules for Java. Covers component annotations, service lifecycle, declarative services (DS), and bundle hygiene.
+alwaysApply: false
+globs: "**/*.java"
+---
+
+# OSGi Services Rules
+
+## Declarative Services (DS) Component Annotations
+
+### @Component
+- Every OSGi service implementation must be annotated with `@Component` from `org.osgi.service.component.annotations`.
+- Set `service = { ServiceInterface.class }` explicitly rather than relying on auto-detection, to make the registered service type unambiguous.
+- Set `immediate = true` only for components that genuinely need to activate on bundle start without waiting for a consumer. Default is lazy activation.
+- Use `configurationPid` to bind the component to a specific PID when it consumes OSGi configuration.
+
+### @Activate / @Deactivate / @Modified
+- `@Activate` methods must be idempotent-safe and must not block the Felix/Equinox thread for more than a few milliseconds; defer long initialization to background threads.
+- `@Deactivate` must release all resources (thread pools, connections, file handles) and cancel pending futures.
+- `@Modified` should gracefully re-configure without full teardown/re-activation when possible.
+- Method signatures for activate/deactivate may accept `ComponentContext`, `BundleContext`, or a `@interface`-annotated config DTO.
+
+### @Reference (Service Dependencies)
+- Use `@Reference` to declare all service dependencies. Never call `BundleContext.getService()` directly inside a component unless writing a tracker explicitly.
+- Set `cardinality` accurately:
+  - `MANDATORY` (default): component will not activate without the service.
+  - `OPTIONAL`: component activates without the service; null-check before use.
+  - `MULTIPLE` / `AT_LEAST_ONE`: for dynamic multi-binding scenarios.
+- Use `policy = ReferencePolicy.DYNAMIC` with `volatile` fields or explicit bind/unbind methods only when the service truly needs to update at runtime without restart.
+- Prefer `policyOption = ReferencePolicyOption.GREEDY` when you always want the highest-ranked service.
+- Do not store `ServiceReference` objects beyond the scope of a single method call.
+
+### Configuration (ConfigurationAdmin / Metatype)
+- Define component configuration as a nested `@interface` annotation (metatype annotation) and reference it from `@Activate`.
+- Do not read raw configuration dictionaries (`Dictionary<String, Object>`) without converting to a typed config object.
+- Provide sensible defaults in the metatype annotation attributes.
+- Sensitive configuration values (passwords, tokens) must not appear in default values; document them as required external configuration.
+
+## Bundle Hygiene
+
+### Import/Export Packages
+- Export only the public API packages; never export implementation (`*.impl`, `*.internal`) packages.
+- Import packages with version constraints that match the minimum compatible version, not exact versions.
+- Avoid `Require-Bundle` directives; prefer explicit `Import-Package` statements for loose coupling.
+
+### Bundle Activator
+- Avoid `BundleActivator` where Declarative Services can fulfil the same role.
+- If a `BundleActivator` is necessary, keep `start()` and `stop()` extremely lightweight.
+
+### Class Loading
+- Never use `Class.forName()` with a class from a different bundle — use the bundle's `ClassLoader` or an OSGi extender pattern.
+- Do not expose internal classes through exported packages.
+
+## Lifecycle & Threading
+
+### Thread Safety in Components
+- Components may receive `@Activate` and `@Deactivate` on different threads from `@Reference` bind/unbind calls. Protect shared mutable state with `synchronized`, `volatile`, or `AtomicReference`.
+- Use an `ExecutorService` registered as an OSGi service (or obtained via `@Reference`) rather than creating raw threads in components.
+
+### Service Ranking
+- Set `service.ranking` explicitly when you have multiple implementations of the same interface and priority matters. Document the intended ranking in the class-level Javadoc.
+
+### Service Properties
+- Declare service properties in the `@Component` `property` attribute or via metatype config. Avoid adding dynamic properties in `activate()` without documenting why.
+
+## Logging in OSGi Components
+- Obtain the `LogService` or SLF4J `Logger` via `@Reference` or a static factory that resolves to the bundle's log context.
+- Never use `System.out.println` or `System.err.println` in production OSGi components.
+
+## Testing OSGi Components
+- Unit-test components with plain JUnit by constructing them directly and calling `activate()` with a mock config DTO.
+- Integration-test components in a real OSGi container (e.g., with PAX Exam or Bnd testing support) for lifecycle and injection correctness.

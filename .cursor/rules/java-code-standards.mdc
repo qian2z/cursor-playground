@@ -1,0 +1,63 @@
+---
+description: Core Java coding standards enforced during all Java code reviews. Covers naming conventions, structure, error handling, and general best practices.
+alwaysApply: false
+globs: "**/*.java"
+---
+
+# Java Code Standards
+
+## Naming Conventions
+- Classes and interfaces use `UpperCamelCase` (e.g., `UserService`, `OrderRepository`).
+- Methods and variables use `lowerCamelCase` (e.g., `getUserById`, `orderId`).
+- Constants use `UPPER_SNAKE_CASE` (e.g., `MAX_RETRY_COUNT`).
+- Package names are all lowercase, domain-reversed (e.g., `com.example.service`).
+- Boolean variables and methods should read as questions: `isActive`, `hasPermission`, `canExecute`.
+- Avoid abbreviations unless universally understood (`dto`, `id`, `url` are acceptable; `mgr`, `hlpr` are not).
+
+## Class Structure
+- Each class must have a single, clear responsibility (Single Responsibility Principle).
+- Limit class length to 300–400 lines; extract cohesive logic into separate classes.
+- Declare fields at the top, constructors next, then public methods, then private/protected helpers.
+- Prefer composition over inheritance. Use inheritance only for genuine "is-a" relationships.
+- Mark classes `final` when extension is not intended and not part of the API contract.
+
+## Methods
+- Methods should do one thing. If a method requires a multi-clause name (e.g., `fetchAndSaveUser`), it likely needs to be split.
+- Prefer returning early (guard clauses) to deeply nested conditionals.
+- Limit method length to ~30 lines. Longer methods usually indicate the need for extraction.
+- Avoid passing more than 3–4 parameters. Use a parameter object or builder when you have more.
+- Do not use `boolean` parameters that change method behavior — use method overloading or strategy objects.
+
+## Error Handling
+- Never silently swallow exceptions (`catch(Exception e) {}`).
+- Always log the exception (not just the message) so stack traces are preserved.
+- Use checked exceptions for recoverable conditions; use unchecked (runtime) exceptions for programming errors.
+- Do not use exceptions for flow control.
+- Wrap checked exceptions in custom domain exceptions where they cross architectural boundaries.
+
+## Immutability & State
+- Prefer immutable objects. Make fields `final` wherever possible.
+- Avoid mutable static state; use dependency injection instead.
+- Use `Collections.unmodifiableList` (or Guava/java.util.Collections equivalents) when returning collections that should not be modified.
+
+## Null Handling
+- Avoid returning `null` from methods. Prefer `Optional<T>` for optional return values (Java 8+).
+- Never pass `null` as a method argument. Use overloading or sentinel objects instead.
+- Annotate parameters and return values with `@NonNull` / `@Nullable` where the intent is non-obvious.
+- Validate method arguments at entry points using `Objects.requireNonNull` or Guava `Preconditions`.
+
+## Code Clarity
+- Avoid magic numbers and magic strings. Define them as named constants.
+- Prefer explicit types over `var` where the type is not immediately obvious from the right-hand side.
+- Limit nested blocks to 2–3 levels; extract inner logic into named methods.
+- Keep comments focused on "why", not "what". Delete commented-out code.
+
+## Generics & Collections
+- Always parameterize generic types; avoid raw types.
+- Use the most abstract type in declarations (`List<>` over `ArrayList<>` in method signatures).
+- Stream API is preferred over manual loops for data transformation, but avoid deeply chained streams that hurt readability.
+
+## Thread Safety
+- Mark shared mutable state clearly and protect it with appropriate synchronization or concurrent data structures.
+- Document thread-safety guarantees in class-level Javadoc.
+- Prefer `java.util.concurrent` constructs (`AtomicReference`, `ConcurrentHashMap`, `ReentrantLock`) over raw `synchronized` blocks.

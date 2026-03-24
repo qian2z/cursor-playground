@@ -1,0 +1,95 @@
+---
+description: Process rules for conducting Java PR reviews. Governs how to structure review output, severity labeling, comment format, and when to approve vs. request changes.
+alwaysApply: false
+---
+
+# PR Review Process Rules
+
+## Review Scope
+
+When reviewing a PR, always cover these dimensions in order:
+1. **Architecture & Design** — Does the change fit the established MVC/OSGi layer structure? Are boundaries respected?
+2. **Business Logic Correctness** — Does the code implement the stated requirements accurately?
+3. **Effective Java Compliance** — Are idiomatic Java practices followed (builders, factories, immutability, etc.)?
+4. **SonarQube Compliance** — Are there bugs, vulnerabilities, code smells, or security hotspots?
+5. **OSGi Compliance** — Are component annotations, lifecycle, and references correct?
+6. **Test Quality** — Is the logic tested? Are edge cases and failure paths covered?
+7. **Performance & Scalability** — Are there N+1 queries, unbounded loops, blocking calls?
+8. **Security** — Are inputs validated, secrets absent, and sensitive data protected?
+9. **Documentation** — Do public APIs have Javadoc? Is the PR description adequate?
+
+## Severity Labels
+
+Use these consistent severity labels on every finding:
+
+| Severity | Label | Meaning |
+|----------|-------|---------|
+| Blocker | `[BLOCKER]` | Introduces a bug, security vulnerability, or data corruption risk. Must be fixed before merge. |
+| Critical | `[CRITICAL]` | Violates a core design rule (layer boundary, OSGi contract) or SonarQube critical rule. Should be fixed before merge. |
+| Major | `[MAJOR]` | Significant code smell, naming violation, or Effective Java violation. Fix strongly recommended. |
+| Minor | `[MINOR]` | Style inconsistency, minor naming issue, or optional improvement. Fix at author's discretion. |
+| Info | `[INFO]` | Informational observation, learning note, or positive feedback. No action required. |
+
+## Review Comment Format
+
+Structure each finding as:
+
+```
+[SEVERITY] <File>:<Line> — <Short title>
+
+Problem: <One sentence describing what the issue is and why it matters.>
+
+Current code:
+  <problematic snippet, if applicable>
+
+Suggested fix:
+  <corrected snippet or approach>
+
+Reference: <Rule/item reference — e.g., "Effective Java Item 54", "SonarQube squid:S2095", "OSGi DS @Reference cardinality">
+```
+
+## Approval Criteria
+
+- **Approve** when: no `[BLOCKER]` or `[CRITICAL]` findings, and `[MAJOR]` findings are minor in count (≤3) and author has acknowledged them.
+- **Request Changes** when: any `[BLOCKER]` finding exists, or more than 1 `[CRITICAL]` finding exists.
+- **Comment (no approval/rejection)** when: clarification is needed before a proper review can proceed.
+
+## Positive Feedback
+- Include at least one `[INFO]` comment acknowledging good patterns, clean abstractions, or well-written tests when they are genuinely present.
+
+## Review Summary Format
+
+End every review with a summary block:
+
+```
+## Review Summary
+
+| Category              | Status  | Findings |
+|-----------------------|---------|----------|
+| Architecture/Design   | ✅/⚠️/❌ | <count>  |
+| Business Logic        | ✅/⚠️/❌ | <count>  |
+| Effective Java        | ✅/⚠️/❌ | <count>  |
+| SonarQube             | ✅/⚠️/❌ | <count>  |
+| OSGi Services         | ✅/⚠️/❌ | <count>  |
+| Test Quality          | ✅/⚠️/❌ | <count>  |
+| Performance           | ✅/⚠️/❌ | <count>  |
+| Security              | ✅/⚠️/❌ | <count>  |
+
+**Overall: APPROVE / REQUEST CHANGES / COMMENT**
+
+Blockers: <count>
+Criticals: <count>
+Majors: <count>
+Minors: <count>
+```
+
+## Tone & Collaboration
+- Use collaborative language: "Consider…", "This could be improved by…", not "This is wrong."
+- For `[BLOCKER]` and `[CRITICAL]`, be direct about the risk: "This introduces a potential SQL injection vulnerability."
+- Do not nitpick irrelevant style preferences not covered by the team's rules.
+- Offer concrete code suggestions whenever possible, not just abstract advice.
+
+## What NOT to Review
+- Changes to generated code (build artifacts, generated sources) — mark as `[INFO]` and skip detailed review.
+- Pure formatting changes with no logic change — acknowledge and skip.
+- Test-only changes — review test quality but apply relaxed architecture rules.

@@ -1,0 +1,123 @@
+---
+description: Principles drawn from Effective Java (Bloch, 3rd edition). Applied during Java PR reviews to ensure idiomatic, robust, and maintainable Java code.
+alwaysApply: false
+globs: "**/*.java"
+---
+
+# Effective Java Principles
+
+## Item 1 – Static Factory Methods over Constructors
+- Prefer named static factory methods (`of`, `from`, `valueOf`, `create`, `getInstance`) over constructors when the intent clarifies semantics or when caching instances is desirable.
+- Constructors with multiple parameters of the same type are error-prone; consider builders or factories.
+
+## Item 2 – Builder Pattern for Many Parameters
+- Use the Builder pattern when a constructor has 4 or more parameters, especially when many are optional.
+- Builders must validate invariants in the `build()` method, not in setters.
+- Make the constructed object immutable by making its fields `final`.
+
+## Item 3 – Singleton via Enum
+- For true singletons, prefer a single-element `enum` over static fields; it provides serialization safety and prevents reflection attacks.
+
+## Item 4 – Enforce Non-Instantiability with Private Constructors
+- Utility classes (containing only static methods) must have a `private` constructor that throws `AssertionError` to prevent instantiation.
+
+## Item 5 – Dependency Injection over Hard-Coded Resources
+- Do not create dependencies inside classes with `new` or via static factories. Inject resources (services, configurations, clocks) through constructors or OSGi service binding.
+- Use interfaces/abstractions as injection points, not concrete classes.
+
+## Item 6 – Avoid Unnecessary Object Creation
+- Prefer primitives over boxed types in computations to avoid repeated auto-boxing.
+- Reuse expensive-to-create objects (compiled `Pattern`, parsed config) by making them `static final` fields.
+
+## Item 7 – Eliminate Obsolete Object References
+- Null out object references explicitly when managing your own memory (e.g., array-backed stacks).
+- Be cautious with caches, listeners, and callbacks — use `WeakReference` or explicit deregistration to prevent memory leaks.
+
+## Item 8 – Avoid Finalizers and Cleaners
+- Do not rely on `finalize()` or `Cleaner` for resource management. Use `try-with-resources` and `AutoCloseable` instead.
+
+## Item 9 – Try-with-Resources over Try-Finally
+- All `Closeable` or `AutoCloseable` resources must be opened in a `try-with-resources` block to guarantee closure even on exceptions.
+
+## Item 10 – Obey the `equals` Contract
+- When overriding `equals`, implement all five properties: reflexivity, symmetry, transitivity, consistency, and non-nullity.
+- Always override `hashCode` when overriding `equals`.
+- Never override `equals` on a class with a mutable key field unless you fully understand the implications for collections.
+
+## Item 11 – Always Override `hashCode` with `equals`
+- Use `Objects.hash(...)` or the same fields used in `equals` to compute `hashCode`.
+- The hash code must not change for an object's lifetime when used as a map key.
+
+## Item 12 – Override `toString`
+- Always override `toString` for value types, DTOs, and domain objects. Include all significant fields.
+- Use `@Override` annotation; include the class name prefix in the output: `"Order{id=42, status=PENDING}"`.
+
+## Item 13 – Override `clone` Judiciously
+- Avoid implementing `Cloneable`. Prefer copy constructors or static factory `copy(T)` methods.
+
+## Item 14 – Implement `Comparable` for Natural Order
+- Implement `Comparable<T>` for types that have a natural ordering. Use `Comparator.comparing(...)` chains for multi-field comparisons.
+
+## Item 15 – Minimize Accessibility
+- Declare fields and methods with the most restrictive access modifier that works.
+- No public mutable fields on non-final classes; use accessors.
+- Package-private is a strong option for implementation classes not intended to be part of the API.
+
+## Item 17 – Minimize Mutability
+- All fields of value objects and DTOs should be `final`.
+- Do not provide setters unless the object is explicitly a mutable POJO (e.g., JPA entity).
+
+## Item 18 – Favor Composition over Inheritance
+- Extend only when the relationship is a genuine "is-a". Prefer delegating to a wrapped instance.
+- Document and design inheritance explicitly (`@Override` all abstract methods, document invariants).
+
+## Item 22 – Interfaces for Types Only
+- Do not define "constant interfaces" (interfaces containing only static final fields). Use a class with a private constructor or an enum.
+
+## Item 23 – Tagged Classes → Class Hierarchies
+- Replace classes with a `type` field and `switch` on that field with proper polymorphic class hierarchies.
+
+## Item 28 – Lists over Arrays
+- Arrays are covariant and reifiable; generics are invariant and erased. Prefer `List<E>` over `E[]` in generic contexts.
+
+## Item 29–33 – Generics
+- Eliminate raw types and unchecked casts. Use bounded wildcards (`? extends T`, `? super T`) according to PECS (Producer Extends, Consumer Super).
+
+## Item 39–41 – Annotations over Naming Conventions
+- Use annotations (`@Override`, custom meta-annotations) instead of naming conventions to signal intent to the compiler and readers.
+- Use `@Override` on every method that overrides a supertype method, including interface defaults.
+
+## Item 45–48 – Streams
+- Prefer streams for data transformation pipelines. Avoid streams for code that requires `break`, `continue`, `return`, or checked exceptions in the loop body.
+- Name lambda parameters meaningfully. Extract complex lambdas into named private methods.
+- Prefer method references over verbose lambdas when they improve clarity.
+
+## Item 49 – Validate Parameters
+- Validate all public-method parameters at the top of the method. Document constraints in Javadoc.
+- Throw `NullPointerException`, `IllegalArgumentException`, or `IndexOutOfBoundsException` as appropriate.
+
+## Item 54 – Return Empty Collections, Not Null
+- Methods returning collections or arrays must return empty collections (`Collections.emptyList()`, `new ArrayList<>()`) never `null`.
+
+## Item 55 – Return Optional Judiciously
+- Use `Optional<T>` only for method return types that may have no result. Do not use `Optional` for fields, method parameters, or collection elements.
+
+## Item 57–63 – Strings
+- Prefer `StringBuilder` for repeated string concatenation in loops.
+- Avoid `String.format` in hot paths; use direct concatenation for simple cases.
+
+## Item 64 – Refer to Objects by Interfaces
+- Declare variables and parameters using the interface type (`List<String>` not `ArrayList<String>`), unless you need specific implementation features.
+
+## Item 69 – Use Exceptions for Exceptional Conditions
+- Do not use exceptions to check if an optional operation is possible (e.g., catching `NoSuchElementException` from `Iterator`). Use `hasNext()` checks instead.
+
+## Item 76 – Strive for Failure Atomicity
+- A method should leave an object in a valid state even if it throws. Validate parameters before any state mutation.
+
+## Item 80 – Prefer Executor Framework over Raw Threads
+- Use `ExecutorService`, `ScheduledExecutorService`, or higher-level constructs (`CompletableFuture`, reactive streams) instead of `new Thread(...)`.
+
+## Item 82–83 – Thread Safety Documentation & Lazy Initialization
+- Document thread-safety guarantees at the class level.
+- Use the double-check idiom with `volatile` for lazy initialization of instance fields.
